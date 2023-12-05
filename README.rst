@@ -1,4 +1,4 @@
 What is this?
 =============
 
-A repository providing a pre-build binary for Apple M1 arm64 chips
+A repository providing a pre-build binary for Apple arm64 chips, or other platforms.
