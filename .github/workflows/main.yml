@@ -1,0 +1,113 @@
+name: Build Skia
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  build:
+    name: Build Skia
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, macos-14]
+        arch: [x86_64, arm64]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            sudo apt-get update && sudo apt-get install -y ninja-build libharfbuzz-dev libwebp-dev clang
+          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+            brew install bazelisk ninja harfbuzz webp
+          fi
+
+      - name: Set up environment variables
+        run: |
+          echo "Skia out folder is: $GITHUB_WORKSPACE/lib/skia"
+          echo "::set-output name=skia_out::$GITHUB_WORKSPACE/lib/skia"
+          mkdir -p $GITHUB_WORKSPACE/lib/skia
+          mkdir -p $GITHUB_WORKSPACE/build_skia && cd $GITHUB_WORKSPACE/build_skia
+
+      - name: Detect architecture and OS
+        id: detect_env
+        run: |
+          ARCH=$(uname -m)
+          OS=$(uname -s)
+
+          EXTRA_CFLAGS=""
+          EXTRA_LDFLAGS=""
+
+          if [ "$ARCH" = "x86_64" ]; then
+              EXTRA_CFLAGS='extra_cflags=["-mavx2", "-mfma", "-mavx512f", "-mavx512dq", "-msse4.2", "-mpopcnt", "-frtti"]'
+              EXTRA_LDFLAGS='extra_ldflags=["-mavx2", "-mfma", "-mavx512f", "-mavx512dq"]'
+          elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
+              EXTRA_CFLAGS='extra_cflags=["-march=armv8-a+crc+crypto", "-frtti"]'
+              EXTRA_LDFLAGS='extra_ldflags=["-march=armv8-a+crc+crypto"]'
+          else
+              echo "Unsupported architecture: $ARCH"
+              exit 1
+          fi
+
+          EXTRA_ARGS=""
+          if [ "$OS" = "Darwin" ]; then
+              SDK_PATH="/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
+              EXTRA_CFLAGS="${EXTRA_CFLAGS/[\]]}, \"-mmacosx-version-min=10.15\", \"-isysroot\", \"${SDK_PATH}\"]"
+              EXTRA_LDFLAGS="${EXTRA_LDFLAGS/[\]]}, \"-mmacosx-version-min=10.15\", \"-isysroot\", \"${SDK_PATH}\"]"
+              EXTRA_ARGS="skia_use_gl=true skia_use_metal=true"
+          elif [ "$OS" = "Linux" ]; then
+              EXTRA_ARGS="skia_use_egl=true skia_use_gl=true skia_use_x11=true"
+          else
+              echo "Unsupported OS: $OS"
+              exit 1
+          fi
+
+          echo "::set-output name=arch::$ARCH"
+          echo "::set-output name=os::$OS"
+          echo "::set-output name=extra_cflags::$EXTRA_CFLAGS"
+          echo "::set-output name=extra_ldflags::$EXTRA_LDFLAGS"
+          echo "::set-output name=extra_args::$EXTRA_ARGS"
+
+      - name: Clone depot_tools and Skia
+        run: |
+          git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+          export PATH="$GITHUB_WORKSPACE/depot_tools:$PATH"
+          cd $GITHUB_WORKSPACE
+          depot_tools/fetch skia
+
+      - name: Build Skia
+        run: |
+          cd $GITHUB_WORKSPACE/skia
+          git checkout origin/chrome/m93
+          python3 tools/git-sync-deps
+          REL=Release
+          bin/gn gen out/${REL} --args="is_official_build=true \
+              skia_use_system_icu=false \
+              skia_use_system_zlib=false \
+              skia_use_system_expat=false \
+              skia_use_system_libjpeg_turbo=false \
+              skia_use_system_libpng=false \
+              skia_use_system_libwebp=false \
+              skia_use_system_harfbuzz=false \
+              skia_pdf_subset_harfbuzz=true \
+              skia_enable_skottie=true \
+              target_cpu=\"${{ steps.detect_env.outputs.arch }}\" \
+              ${{ steps.detect_env.outputs.extra_cflags }} \
+              ${{ steps.detect_env.outputs.extra_ldflags }} \
+              cc=\"clang\" \
+              cxx=\"clang++\" \
+              ${{ steps.detect_env.outputs.extra_args }}"
+          ninja -C out/${REL}
+
+      - name: Copy Build Artifacts
+        run: |
+          mkdir -p ${{ steps.detect_env.outputs.skia_out }}/out/Release
+          cp -r out/Release/* ${{ steps.detect_env.outputs.skia_out }}/out/Release
+          echo "Build complete!"
