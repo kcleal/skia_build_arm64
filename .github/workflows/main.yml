@@ -41,11 +41,11 @@ jobs:
           OS=$(uname -s)
           
           if [ "$ARCH" = "x86_64" ]; then
-              echo "EXTRA_CFLAGS='[\"-mavx2\", \"-mfma\", \"-msse4.2\", \"-mpopcnt\", \"-frtti\"]'" >> $GITHUB_ENV
-              echo "EXTRA_LDFLAGS='[\"-mavx2\", \"-mfma\"]'" >> $GITHUB_ENV
+              echo "EXTRA_CFLAGS=[\"-mavx2\", \"-mfma\", \"-msse4.2\", \"-mpopcnt\", \"-frtti\"]" >> $GITHUB_ENV
+              echo "EXTRA_LDFLAGS=[\"-mavx2\", \"-mfma\"]" >> $GITHUB_ENV
           elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
-              echo "EXTRA_CFLAGS='[\"-march=armv8-a+crc+crypto\", \"-frtti\"]'" >> $GITHUB_ENV
-              echo "EXTRA_LDFLAGS='[\"-march=armv8-a+crc+crypto\"]'" >> $GITHUB_ENV
+              echo "EXTRA_CFLAGS=[\"-march=armv8-a+crc+crypto\", \"-frtti\"]" >> $GITHUB_ENV
+              echo "EXTRA_LDFLAGS=[\"-march=armv8-a+crc+crypto\"]" >> $GITHUB_ENV
           else
               echo "Unsupported architecture: $ARCH"
               exit 1
