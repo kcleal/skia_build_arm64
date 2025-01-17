@@ -23,7 +23,7 @@ jobs:
       - name: Install dependencies
         run: |
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            sudo apt-get update && sudo apt-get install -y ninja-build libharfbuzz-dev libwebp-dev clang python3
+            sudo apt-get update && sudo apt-get install -y ninja-build libharfbuzz-dev libwebp-dev clang-17 python3
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
             brew install bazelisk ninja harfbuzz webp
           fi
@@ -39,12 +39,13 @@ jobs:
         run: |
           ARCH=$(uname -m)
           OS=$(uname -s)
+          lscpu
           
           if [ "$ARCH" = "x86_64" ]; then
-              echo "EXTRA_CFLAGS=[\"-mavx2\", \"-mfma\", \"-msse4.2\", \"-mpopcnt\", \"-frtti\"]" >> $GITHUB_ENV
+              echo "EXTRA_CFLAGS=[\"-mavx2\", \"-mfma\", \"-msse4.2\", \"-mpopcnt\", \"-mf16c\"]" >> $GITHUB_ENV  # , \"-frtti\"
               echo "EXTRA_LDFLAGS=[\"-mavx2\", \"-mfma\"]" >> $GITHUB_ENV
           elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
-              echo "EXTRA_CFLAGS=[\"-march=armv8-a+crc+crypto\", \"-frtti\"]" >> $GITHUB_ENV
+              echo "EXTRA_CFLAGS=[\"-march=armv8-a+crc+crypto\"]" >> $GITHUB_ENV  # , \"-frtti\"
               echo "EXTRA_LDFLAGS=[\"-march=armv8-a+crc+crypto\"]" >> $GITHUB_ENV
           else
               echo "Unsupported architecture: $ARCH"
@@ -80,7 +81,7 @@ jobs:
       - name: Build Skia
         run: |
           cd $GITHUB_WORKSPACE/skia
-          git checkout origin/chrome/m93
+          git checkout origin/chrome/m133
           python3 tools/git-sync-deps
           REL=Release
           bin/gn gen out/${REL} --args="is_official_build=true \
