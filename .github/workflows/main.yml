@@ -44,11 +44,11 @@ jobs:
           EXTRA_LDFLAGS='[]'
 
           if [ "$ARCH" = "x86_64" ]; then
-              EXTRA_CFLAGS='["-mavx2", "-mfma", "-msse4.2", "-mpopcnt", "-frtti"]'
-              EXTRA_LDFLAGS='["-mavx2", "-mfma"]'
+              EXTRA_CFLAGS='"[\"-mavx2\", \"-mfma\", \"-msse4.2\", \"-mpopcnt\", \"-frtti\"]"'
+              EXTRA_LDFLAGS='"[\"-mavx2\", \"-mfma\"]"'
           elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
-              EXTRA_CFLAGS='["-march=armv8-a+crc+crypto", "-frtti"]'
-              EXTRA_LDFLAGS='["-march=armv8-a+crc+crypto"]'
+              EXTRA_CFLAGS='"[\"-march=armv8-a+crc+crypto\", \"-frtti\"]"'
+              EXTRA_LDFLAGS='"[\"-march=armv8-a+crc+crypto\"]"'
           else
               echo "Unsupported architecture: $ARCH"
               exit 1
@@ -94,12 +94,12 @@ jobs:
               skia_use_system_harfbuzz=false \
               skia_pdf_subset_harfbuzz=true \
               skia_enable_skottie=true \
-              target_cpu=\"${{ env.ARCH }}\" \
-              extra_cflags=${{ env.EXTRA_CFLAGS }} \
-              extra_ldflags=${{ env.EXTRA_LDFLAGS }} \
-              cc=\"clang\" \
-              cxx=\"clang++\" \
-              ${{ env.EXTRA_ARGS }}"
+              target_cpu="'"$ARCH"'" \
+              extra_cflags='"$EXTRA_CFLAGS"' \
+              extra_ldflags='"$EXTRA_LDFLAGS"' \
+              cc="clang" \
+              cxx="clang++" \
+              '"$EXTRA_ARGS"
           ninja -C out/${REL}
 
       - name: Copy Build Artifacts
