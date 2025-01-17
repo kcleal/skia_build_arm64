@@ -39,21 +39,18 @@ jobs:
         run: |
           ARCH=$(uname -m)
           OS=$(uname -s)
-
-          EXTRA_CFLAGS='[]'
-          EXTRA_LDFLAGS='[]'
-
+          
           if [ "$ARCH" = "x86_64" ]; then
-              EXTRA_CFLAGS='"[\"-mavx2\", \"-mfma\", \"-msse4.2\", \"-mpopcnt\", \"-frtti\"]"'
-              EXTRA_LDFLAGS='"[\"-mavx2\", \"-mfma\"]"'
+              echo "EXTRA_CFLAGS='[\"-mavx2\", \"-mfma\", \"-msse4.2\", \"-mpopcnt\", \"-frtti\"]'" >> $GITHUB_ENV
+              echo "EXTRA_LDFLAGS='[\"-mavx2\", \"-mfma\"]'" >> $GITHUB_ENV
           elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
-              EXTRA_CFLAGS='"[\"-march=armv8-a+crc+crypto\", \"-frtti\"]"'
-              EXTRA_LDFLAGS='"[\"-march=armv8-a+crc+crypto\"]"'
+              echo "EXTRA_CFLAGS='[\"-march=armv8-a+crc+crypto\", \"-frtti\"]'" >> $GITHUB_ENV
+              echo "EXTRA_LDFLAGS='[\"-march=armv8-a+crc+crypto\"]'" >> $GITHUB_ENV
           else
               echo "Unsupported architecture: $ARCH"
               exit 1
           fi
-
+          
           EXTRA_ARGS=""
           if [ "$OS" = "Darwin" ]; then
               SDK_PATH="/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
@@ -64,11 +61,13 @@ jobs:
               echo "Unsupported OS: $OS"
               exit 1
           fi
-
+          
+          echo "ARCH=$ARCH"
+          echo "OS=$OS"
+          echo "EXTRA_ARGS=$EXTRA_ARGS"
+          
           echo "ARCH=$ARCH" >> $GITHUB_ENV
           echo "OS=$OS" >> $GITHUB_ENV
-          echo "EXTRA_CFLAGS=$EXTRA_CFLAGS" >> $GITHUB_ENV
-          echo "EXTRA_LDFLAGS=$EXTRA_LDFLAGS" >> $GITHUB_ENV
           echo "EXTRA_ARGS=$EXTRA_ARGS" >> $GITHUB_ENV
 
       - name: Clone depot_tools and Skia
@@ -94,12 +93,12 @@ jobs:
               skia_use_system_harfbuzz=false \
               skia_pdf_subset_harfbuzz=true \
               skia_enable_skottie=true \
-              target_cpu="'"$ARCH"'" \
-              extra_cflags='"$EXTRA_CFLAGS"' \
-              extra_ldflags='"$EXTRA_LDFLAGS"' \
-              cc="clang" \
-              cxx="clang++" \
-              '"$EXTRA_ARGS"
+              target_cpu=\"${ARCH}\" \
+              extra_cflags=${EXTRA_CFLAGS} \
+              extra_ldflags=${EXTRA_LDFLAGS} \
+              cc=\"clang\" \
+              cxx=\"clang++\" \
+              ${EXTRA_ARGS}"
           ninja -C out/${REL}
 
       - name: Copy Build Artifacts
