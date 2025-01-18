@@ -1,34 +1,21 @@
-name: Build Skia
+name: Build Skia Ubuntu ARM64
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - '*'
+  workflow_dispatch:
 
 jobs:
   build:
     name: Build Skia
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-20.04]
-        arch: [arm64]
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
-          if [[ "$RUNNER_OS" == "Linux" ]]; then
-            sudo apt-get update
-            sudo apt-get install -y ninja-build libharfbuzz-dev libwebp-dev clang python3 \
-                libgles2-mesa-dev libegl1-mesa-dev mesa-common-dev
-          elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            brew install bazelisk ninja harfbuzz webp
-          fi
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libharfbuzz-dev libwebp-dev clang python3 \
+              libgles2-mesa-dev libegl1-mesa-dev mesa-common-dev
 
       - name: Set up environment variables
         run: |
@@ -36,42 +23,13 @@ jobs:
           mkdir -p $GITHUB_WORKSPACE/lib/skia
           mkdir -p $GITHUB_WORKSPACE/build_skia && cd $GITHUB_WORKSPACE/build_skia
 
-      - name: Detect architecture and OS
-        id: detect_env
+      - name: Set architecture specific flags
         run: |
-          ARCH=$(uname -m)
-          OS=$(uname -s)
-          lscpu
-          
-          if [ "$ARCH" = "x86_64" ]; then
-              echo "EXTRA_CFLAGS=[\"-mavx2\", \"-mfma\", \"-msse4.2\", \"-mpopcnt\", \"-mf16c\"]" >> $GITHUB_ENV  # , \"-frtti\"
-              echo "EXTRA_LDFLAGS=[\"-mavx2\", \"-mfma\"]" >> $GITHUB_ENV
-          elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
-              echo "EXTRA_CFLAGS=[\"-march=armv8-a+crc+crypto\"]" >> $GITHUB_ENV  # , \"-frtti\"
-              echo "EXTRA_LDFLAGS=[\"-march=armv8-a+crc+crypto\"]" >> $GITHUB_ENV
-          else
-              echo "Unsupported architecture: $ARCH"
-              exit 1
-          fi
-          
-          EXTRA_ARGS=""
-          if [ "$OS" = "Darwin" ]; then
-              SDK_PATH="/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
-              EXTRA_ARGS="skia_use_gl=true skia_use_metal=true"
-          elif [ "$OS" = "Linux" ]; then
-              EXTRA_ARGS="skia_use_egl=true skia_use_gl=true skia_use_x11=true"
-          else
-              echo "Unsupported OS: $OS"
-              exit 1
-          fi
-          
-          echo "ARCH=$ARCH"
-          echo "OS=$OS"
-          echo "EXTRA_ARGS=$EXTRA_ARGS"
-          
-          echo "ARCH=$ARCH" >> $GITHUB_ENV
-          echo "OS=$OS" >> $GITHUB_ENV
-          echo "EXTRA_ARGS=$EXTRA_ARGS" >> $GITHUB_ENV
+          echo "EXTRA_CFLAGS=[\"-march=armv8-a+crc+crypto\"]" >> $GITHUB_ENV
+          echo "EXTRA_LDFLAGS=[\"-march=armv8-a+crc+crypto\"]" >> $GITHUB_ENV
+          echo "EXTRA_ARGS=skia_use_egl=true skia_use_gl=true skia_use_x11=true" >> $GITHUB_ENV
+          echo "ARCH=arm64" >> $GITHUB_ENV
+          echo "OS=Linux" >> $GITHUB_ENV
 
       - name: Clone depot_tools and Skia
         run: |
@@ -106,32 +64,10 @@ jobs:
 
       - name: Copy and Package Build Artifacts
         run: |
-          # Debug checks for source directories
-          echo "Checking source directories..."
-          
-          echo "--- skia directory ---"
-          ls $GITHUB_WORKSPACE/skia
-          
-          echo "--- skia/out directory ---"
-          ls $GITHUB_WORKSPACE/skia/out
-          
-          echo "--- skia/out/Release directory ---"
-          ls $GITHUB_WORKSPACE/skia/out/Release
-          
-          echo "--- skia/third_party/externals directory ---"
-          ls $GITHUB_WORKSPACE/skia/third_party/externals
-          
-
-          set -e
-          
-          # Debug checks for source directories
-          echo "Checking source directories..."
-          
           NAME=${GITHUB_WORKSPACE}/lib/skia
-          mkdir -p ${NAME}/out/Release || exit 1
-          mkdir -p ${NAME}/third_party/externals || exit 1
+          mkdir -p ${NAME}/out/Release
+          mkdir -p ${NAME}/third_party/externals
           
-          # Use absolute paths
           cp -rf $GITHUB_WORKSPACE/skia/out/Release/* ${NAME}/out/Release
           cp -rf $GITHUB_WORKSPACE/skia/include ${NAME}
           cp -rf $GITHUB_WORKSPACE/skia/modules ${NAME}
@@ -152,7 +88,13 @@ jobs:
           cp -rf $GITHUB_WORKSPACE/skia/third_party/icu ${NAME}/third_party
           
           # Clean up
-          cd ${NAME}
+          rm -rf ${NAME}/out/Release/obj
+          rm -rf ${NAME}/out/Release/gen
+          rm -rf ${NAME}/out/Release/*.dat
+          rm -rf ${NAME}/out/Release/*.stamp
+          
+          rm -rf ${NAME}/modules/audioplayer
+           
           find . -type f -name "*.clang-format" -delete
           find . -type f -name "*.gitignore" -delete
           find . -type f -name "*.md" -delete
@@ -165,19 +107,11 @@ jobs:
           find . -type d -name "test*" -exec rm -rf {} +
           
           cd ${NAME}
-          pwd
-          ls
-          cd ${NAME}
           tar -czf ../skia-m133-linux-Release-arm64.tar.gz *
-          cd ..
-          ls -lh skia-m133-linux-Release-arm64.tar.gz
-          echo "DONE"
+          ls -lh ../skia-m133-linux-Release-arm64.tar.gz
 
-
-      - name: upload
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: linux_arm64
           path: ${{ github.workspace }}/lib/skia-m133-linux-Release-arm64.tar.gz
-          
-          
