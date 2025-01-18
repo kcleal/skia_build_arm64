@@ -15,7 +15,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build libharfbuzz-dev libwebp-dev clang python3 \
-              libgles2-mesa-dev libegl1-mesa-dev mesa-common-dev
+              libgles2-mesa-dev libegl1-mesa-dev mesa-common-dev fontconfig
 
       - name: Set up environment variables
         run: |
