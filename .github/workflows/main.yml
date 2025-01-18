@@ -104,8 +104,93 @@ jobs:
               ${EXTRA_ARGS}"
           ninja -C out/${REL}
 
-      - name: Copy Build Artifacts
+      - name: Copy and Package Build Artifacts
         run: |
+          # Debug checks for source directories
+          echo "Checking source directories..."
+          ls $GITHUB_WORKSPACE/skis
+          ls $GITHUB_WORKSPACE/skia/out/Release
+          
+          if [ ! -d "$GITHUB_WORKSPACE/skia/out/Release" ]; then
+            echo "Error: Build output directory doesn't exist"
+            exit 1
+          fi
+          
+          if [ ! -d "$GITHUB_WORKSPACE/skia/include" ]; then
+            echo "Error: Include directory doesn't exist"
+            exit 1
+          fi
+          
+          if [ ! -d "$GITHUB_WORKSPACE/skia/modules" ]; then
+            echo "Error: Modules directory doesn't exist"
+            exit 1
+          fi
+          
+          # Create destination directories
+          echo "Creating destination directories..."
           mkdir -p $GITHUB_WORKSPACE/lib/skia/out/Release
-          cp -r out/Release/* $GITHUB_WORKSPACE/lib/skia/out/Release
-          echo "Build complete!"
+          mkdir -p $GITHUB_WORKSPACE/lib/skia/third_party/externals
+          
+          # Copy main components
+          echo "Copying main components..."
+          cp -rf $GITHUB_WORKSPACE/skia/out/Release/* $GITHUB_WORKSPACE/lib/skia/out/Release/
+          cp -rf $GITHUB_WORKSPACE/skia/include $GITHUB_WORKSPACE/lib/skia/
+          cp -rf $GITHUB_WORKSPACE/skia/modules $GITHUB_WORKSPACE/lib/skia/
+          cp -rf $GITHUB_WORKSPACE/skia/src $GITHUB_WORKSPACE/lib/skia/
+          
+          # Copy external libraries
+          echo "Copying external libraries..."
+          libs=("freetype" "harfbuzz" "icu" "libpng" "zlib")
+          
+          for l in "${libs[@]}"; do
+            echo "Processing $l..."
+            if [ ! -d "$GITHUB_WORKSPACE/skia/third_party/externals/$l" ]; then
+              echo "Warning: $l directory not found, skipping..."
+              continue
+            fi
+            
+            mkdir -p $GITHUB_WORKSPACE/lib/skia/third_party/externals/$l
+            
+            # Copy components if they exist
+            for component in "src" "include" "source"; do
+              if [ -d "$GITHUB_WORKSPACE/skia/third_party/externals/$l/$component" ]; then
+                cp -rf $GITHUB_WORKSPACE/skia/third_party/externals/$l/$component $GITHUB_WORKSPACE/lib/skia/third_party/externals/$l/
+              fi
+            done
+            
+            # Copy header files
+            find $GITHUB_WORPACE/skia/third_party/externals/$l -maxdepth 1 -name "*.h" -exec cp {} $GITHUB_WORKSPACE/lib/skia/third_party/externals/$l/ \;
+          done
+          
+          # Copy ICU
+          if [ -d "$GITHUB_WORKSPACE/skia/third_party/icu" ]; then
+            cp -rf $GITHUB_WORKSPACE/skia/third_party/icu $GITHUB_WORKSPACE/lib/skia/third_party/
+          fi
+          
+          # Clean up
+          echo "Cleaning up..."
+          cd $GITHUB_WORKSPACE/lib/skia
+          
+          if [ -d "modules/skottie/tests" ]; then
+            rm -rf modules/skottie/tests
+          fi
+          
+          for dir in "out/Release/obj" "out/Release/gen" "out/Release/gcc_like_host"; do
+            if [ -d "$dir" ]; then
+              rm -rf "$dir"
+            fi
+          done
+          
+          # Remove unnecessary files
+          find . -name "*.clang-format" -type f -delete
+          find . -name "*.gitignore" -type f -delete
+          find . -name "*.md" -type f -delete
+          find . -name "*.gn" -type f -delete
+          find . -name "*.ninja" -type f -delete
+          find . -name "*.cpp" -type f -delete
+          find . -name "*.ninja.d" -type f -delete
+          find . -name "*BUILD*" -type f -delete
+          find . -name "*.txt" -type f -delete
+          find . -name "test*" -type d -exec rm -rf {} +
+          
+          
