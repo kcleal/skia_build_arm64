@@ -108,7 +108,8 @@ jobs:
         run: |
           # Debug checks for source directories
           echo "Checking source directories..."
-          ls $GITHUB_WORKSPACE/skis
+          ls $GITHUB_WORKSPACE/skia
+          ls $GITHUB_WORKSPACE/skia/out
           ls $GITHUB_WORKSPACE/skia/out/Release
           
           if [ ! -d "$GITHUB_WORKSPACE/skia/out/Release" ]; then
