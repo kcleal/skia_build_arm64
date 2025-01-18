@@ -6,7 +6,11 @@ on:
 jobs:
   build:
     name: Build Skia
-    runs-on: macos-14
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-14]
+        arch: [arm64]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
