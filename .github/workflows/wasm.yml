@@ -46,24 +46,35 @@ jobs:
           git checkout origin/chrome/m133
           python3 tools/git-sync-deps
           REL=Release
-          bin/gn gen out/${REL} --args="is_official_build=true \
-              target_os=\"wasm\" \
-              skia_use_system_icu=false \
-              skia_use_system_zlib=false \
-              skia_use_system_expat=false \
-              skia_use_system_libjpeg_turbo=false \
-              skia_use_system_libpng=false \
-              skia_use_system_libwebp=false \
-              skia_use_system_harfbuzz=false \
-              skia_pdf_subset_harfbuzz=true \
-              skia_enable_skottie=true \
-              skia_use_gl=true \
-              skia_gl_standard=\"webgl\" \
-              cc=\"emcc\" \
-              cxx=\"em++\" \
-              ar=\"emar\" \
-              extra_cflags=[\"-s\", \"WASM=1\", \"-s\", \"USE_WEBGL2=1\"] \
-              extra_ldflags=[\"-s\", \"WASM=1\", \"-s\", \"USE_WEBGL2=1\", \"-s\", \"EXPORTED_RUNTIME_METHODS=['ccall','cwrap']\", \"-s\", \"EXPORTED_FUNCTIONS=['_malloc','_free']\"]"
+          bin/gn gen out/${REL} --args='is_official_build=true
+              target_os="wasm"
+              target_cpu="wasm"
+              skia_use_system_icu=false
+              skia_use_system_zlib=false
+              skia_use_system_expat=false
+              skia_use_system_libjpeg_turbo=false
+              skia_use_system_libpng=false
+              skia_use_system_libwebp=false
+              skia_use_system_harfbuzz=false
+              skia_pdf_subset_harfbuzz=true
+              skia_enable_skottie=true
+              skia_use_gl=true
+              skia_gl_standard="webgl"
+              skia_enable_gpu=true
+              cc="emcc"
+              cxx="em++"
+              ar="emar"
+              skia_enable_tools=false
+              is_component_build=false
+              werror=false
+              skia_use_libheif=false
+              skia_use_client_icu=false
+              skia_enable_nvpr=false
+              skia_enable_spirv_validation=false
+              skia_enable_optimization=true
+              skia_enable_ssbo=true
+              extra_cflags=["-s", "WASM=1", "-s", "USE_WEBGL2=1", "-fno-rtti"]
+              extra_ldflags=["-s", "WASM=1", "-s", "USE_WEBGL2=1", "-s", "EXPORTED_RUNTIME_METHODS=[\'ccall\',\'cwrap\']", "-s", "EXPORTED_FUNCTIONS=[\'_malloc\',\'_free\']", "-s", "ALLOW_MEMORY_GROWTH=1"]'
           ninja -C out/${REL}
 
       - name: Copy and Package Build Artifacts
