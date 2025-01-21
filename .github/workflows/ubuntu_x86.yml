@@ -6,13 +6,13 @@ on:
 jobs:
   build:
     name: Build Skia
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container:
       image: quay.io/condaforge/linux-anvil-comp7
       options: --user root
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Install dependencies
         run: |
@@ -98,7 +98,7 @@ jobs:
           ls -lh ../skia-m133-linux-Release-x64.tar.gz
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: linux_x64
           path: ${{ github.workspace }}/lib/skia-m133-linux-Release-x64.tar.gz
