@@ -7,20 +7,15 @@ jobs:
   build:
     name: Build Skia
     runs-on: ubuntu-24.04
-    container:
-      image: centos:7
+    container: 
+      image: quay.io/pypa/manylinux2014_x86_64
+      options: --user root
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Configure git
-        run: |
-          yum install -y git
-          git config --global --add safe.directory '*'
-
       - name: Install dependencies
         run: |
-          yum install epel-release
           yum update -y
           yum install -y ninja-build harfbuzz-devel libwebp-devel clang mesa-libGL-devel \
               mesa-libEGL-devel mesa-libGLES-devel fontconfig-devel python3
