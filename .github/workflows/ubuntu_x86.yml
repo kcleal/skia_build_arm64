@@ -66,26 +66,25 @@ jobs:
         run: |
           NAME=${GITHUB_WORKSPACE}/lib/skia
           mkdir -p ${NAME}/out/Release
-          mkdir -p ${NAME}/third_party/externals
+#          mkdir -p ${NAME}/third_party/externals
           
           cp -rf $GITHUB_WORKSPACE/skia/out/Release/* ${NAME}/out/Release
           cp -rf $GITHUB_WORKSPACE/skia/include ${NAME}
           cp -rf $GITHUB_WORKSPACE/skia/modules ${NAME}
-          cp -rf $GITHUB_WORKSPACE/skia/src ${NAME}
           
-          libs=( "freetype" "harfbuzz" "icu" "libpng" "zlib" )
-          
-          for l in "${libs[@]}"
-          do
-            echo "Copying $l..."
-            mkdir -p ${NAME}/third_party/externals/${l}
-            cp -rf $GITHUB_WORKSPACE/skia/third_party/externals/${l}/src ${NAME}/third_party/externals/${l} || true
-            cp -rf $GITHUB_WORKSPACE/skia/third_party/externals/${l}/include ${NAME}/third_party/externals/${l} || true
-            cp -rf $GITHUB_WORKSPACE/skia/third_party/externals/${l}/source ${NAME}/third_party/externals/${l} || true
-            cp $GITHUB_WORKSPACE/skia/third_party/externals/${l}/*.h ${NAME}/third_party/externals/${l} || true
-          done
-          
-          cp -rf $GITHUB_WORKSPACE/skia/third_party/icu ${NAME}/third_party
+#          libs=( "freetype" "harfbuzz" "icu" "libpng" "zlib" )
+#          
+#          for l in "${libs[@]}"
+#          do
+#            echo "Copying $l..."
+#            mkdir -p ${NAME}/third_party/externals/${l}
+#            cp -rf $GITHUB_WORKSPACE/skia/third_party/externals/${l}/src ${NAME}/third_party/externals/${l} || true
+#            cp -rf $GITHUB_WORKSPACE/skia/third_party/externals/${l}/include ${NAME}/third_party/externals/${l} || true
+#            cp -rf $GITHUB_WORKSPACE/skia/third_party/externals/${l}/source ${NAME}/third_party/externals/${l} || true
+#            cp $GITHUB_WORKSPACE/skia/third_party/externals/${l}/*.h ${NAME}/third_party/externals/${l} || true
+#          done
+#          
+#          cp -rf $GITHUB_WORKSPACE/skia/third_party/icu ${NAME}/third_party
           
           # Clean up
           rm -rf ${NAME}/out/Release/obj
@@ -94,8 +93,6 @@ jobs:
           rm -rf ${NAME}/out/Release/*.stamp
           
           rm -rf ${NAME}/modules/audioplayer
-          
-          rm -rf ${NAME}/src
            
           find . -type f -name "*.clang-format" -delete
           find . -type f -name "*.gitignore" -delete

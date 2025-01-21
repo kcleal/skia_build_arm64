@@ -33,12 +33,6 @@ jobs:
           mkdir -p $GITHUB_WORKSPACE/lib/skia
           mkdir -p $GITHUB_WORKSPACE/build_skia && cd $GITHUB_WORKSPACE/build_skia
 
-      - name: Set architecture specific flags
-        run: |
-          echo "EXTRA_CFLAGS=[\"-s WASM=1\", \"-s USE_WEBGL2=1\", \"-fno-rtti\"]" >> $GITHUB_ENV
-          echo "EXTRA_LDFLAGS=[ \"-s ALLOW_MEMORY_GROWTH=1\", \"-s WASM=1\", \"-s USE_WEBGL2=1\", \"-s EXPORTED_RUNTIME_METHODS=['ccall','cwrap']\"]" >> $GITHUB_ENV
-          echo "EXTRA_ARGS=skia_use_gl=true skia_use_metal=true" >> $GITHUB_ENV
-
       - name: Clone depot_tools and Skia
         run: |
           git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
@@ -51,54 +45,32 @@ jobs:
           cd $GITHUB_WORKSPACE/skia
           git checkout origin/chrome/m133
           python3 tools/git-sync-deps
-          REL=Release
-          bin/gn gen out/${REL} --args='is_official_build=true
-              target_os="wasm"
-              target_cpu="wasm"
-              skia_use_system_icu=false
-              skia_use_system_zlib=false
-              skia_use_system_expat=false
-              skia_use_system_libjpeg_turbo=false
-              skia_use_system_libpng=false
-              skia_use_system_libwebp=false
-              skia_use_system_harfbuzz=false
-              skia_pdf_subset_harfbuzz=true
-              skia_enable_skottie=true
-              skia_use_gl=true
-              skia_gl_standard="webgl"
-              skia_enable_gpu=true
-              cc="emcc"
-              cxx="em++"
-              ar="emar"
-              skia_enable_tools=false
-              is_component_build=false
-              werror=false
-              skia_use_libheif=false
-              skia_use_client_icu=false
-              skia_enable_nvpr=false
-              skia_enable_spirv_validation=false
-              skia_enable_optimization=true
-              skia_enable_ssbo=true
-              extra_cflags=${EXTRA_CFLAGS} \
-              extra_ldflags=${EXTRA_LDFLAGS} \
-          ninja -C out/${REL}
+          cd modules/canvaskit
+          bash compile.sh
+          make release
+          ls
 
       - name: Copy and Package Build Artifacts
         run: |
           NAME=${GITHUB_WORKSPACE}/lib/skia
-          mkdir -p ${NAME}/out/Release
-          mkdir -p ${NAME}/third_party/externals
           
-          cp -rf $GITHUB_WORKSPACE/skia/out/Release/* ${NAME}/out/Release
+          ls $GITHUB_WORKSPACE/skia
+          echo "-"
+          ls $GITHUB_WORKSPACE/skia/out 
+          echo "-"
+          ls $GITHUB_WORKSPACE/skia/out/Release
+          echo
+          
+          mkdir -p ${NAME}/out/Release
+#          mkdir -p ${NAME}/third_party/externals
+          
+          cp -rf $GITHUB_WORKSPACE/skia/out/canvaskit_wasm/* ${NAME}/out/Release
           cp -rf $GITHUB_WORKSPACE/skia/include ${NAME}
           cp -rf $GITHUB_WORKSPACE/skia/modules ${NAME}
-          cp -rf $GITHUB_WORKSPACE/skia/src ${NAME}
           
           # Clean up
           rm -rf ${NAME}/out/Release/obj
           rm -rf ${NAME}/out/Release/gen
-          rm -rf ${NAME}/out/Release/*.dat
-          rm -rf ${NAME}/out/Release/*.stamp
           
           rm -rf ${NAME}/modules/audioplayer
            
