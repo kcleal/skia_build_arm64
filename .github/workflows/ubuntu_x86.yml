@@ -8,14 +8,19 @@ jobs:
     name: Build Skia
     runs-on: ubuntu-24.04
     container:
-      image: quay.io/condaforge/linux-anvil-comp7
-      options: --user root
+      image: centos:7
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+
+      - name: Configure git
+        run: |
+          yum install -y git
+          git config --global --add safe.directory '*'
 
       - name: Install dependencies
         run: |
+          yum install epel-release
           yum update -y
           yum install -y ninja-build harfbuzz-devel libwebp-devel clang mesa-libGL-devel \
               mesa-libEGL-devel mesa-libGLES-devel fontconfig-devel python3
@@ -98,7 +103,7 @@ jobs:
           ls -lh ../skia-m133-linux-Release-x64.tar.gz
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: linux_x64
           path: ${{ github.workspace }}/lib/skia-m133-linux-Release-x64.tar.gz
