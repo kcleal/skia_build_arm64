@@ -62,7 +62,6 @@ jobs:
           echo
           
           mkdir -p ${NAME}/out/Release
-#          mkdir -p ${NAME}/third_party/externals
           
           cp -rf $GITHUB_WORKSPACE/skia/out/canvaskit_wasm/* ${NAME}/out/Release
           cp -rf $GITHUB_WORKSPACE/skia/include ${NAME}
