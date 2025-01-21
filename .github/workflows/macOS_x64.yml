@@ -96,6 +96,8 @@ jobs:
           rm -rf ${NAME}/out/Release/*.stamp
           
           rm -rf ${NAME}/modules/audioplayer
+          
+          rm -rf ${NAME}/src
            
           find . -type f -name "*.clang-format" -delete
           find . -type f -name "*.gitignore" -delete

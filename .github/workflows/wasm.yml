@@ -33,6 +33,12 @@ jobs:
           mkdir -p $GITHUB_WORKSPACE/lib/skia
           mkdir -p $GITHUB_WORKSPACE/build_skia && cd $GITHUB_WORKSPACE/build_skia
 
+      - name: Set architecture specific flags
+        run: |
+          echo "EXTRA_CFLAGS=[\"-s WASM=1\", \"-s USE_WEBGL2=1\", \"-fno-rtti\"]" >> $GITHUB_ENV
+          echo "EXTRA_LDFLAGS=[ \"-s ALLOW_MEMORY_GROWTH=1\", \"-s WASM=1\", \"-s USE_WEBGL2=1\", \"-s EXPORTED_RUNTIME_METHODS=['ccall','cwrap']\"]" >> $GITHUB_ENV
+          echo "EXTRA_ARGS=skia_use_gl=true skia_use_metal=true" >> $GITHUB_ENV
+
       - name: Clone depot_tools and Skia
         run: |
           git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
@@ -73,8 +79,8 @@ jobs:
               skia_enable_spirv_validation=false
               skia_enable_optimization=true
               skia_enable_ssbo=true
-              extra_cflags=["-s", "WASM=1", "-s", "USE_WEBGL2=1", "-fno-rtti"]
-              extra_ldflags=["-s", "WASM=1", "-s", "USE_WEBGL2=1", "-s", "EXPORTED_RUNTIME_METHODS=[\'ccall\',\'cwrap\']", "-s", "EXPORTED_FUNCTIONS=[\'_malloc\',\'_free\']", "-s", "ALLOW_MEMORY_GROWTH=1"]'
+              extra_cflags=${EXTRA_CFLAGS} \
+              extra_ldflags=${EXTRA_LDFLAGS} \
           ninja -C out/${REL}
 
       - name: Copy and Package Build Artifacts
