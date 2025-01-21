@@ -58,7 +58,7 @@ jobs:
           echo "-"
           ls $GITHUB_WORKSPACE/skia/out 
           echo "-"
-          ls $GITHUB_WORKSPACE/skia/out/Release
+          ls $GITHUB_WORKSPACE/skia/out/canvaskit_wasm
           echo
           
           mkdir -p ${NAME}/out/Release
