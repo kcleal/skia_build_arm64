@@ -6,16 +6,19 @@ on:
 jobs:
   build:
     name: Build Skia
-    runs-on: [ubuntu-20.04]
+    runs-on: ubuntu-latest
+    container:
+      image: quay.io/condaforge/linux-anvil-comp7
+      options: --user root
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ninja-build libharfbuzz-dev libwebp-dev clang python3 \
-              libgles2-mesa-dev libegl1-mesa-dev mesa-common-dev libfontconfig-dev
+          yum update -y
+          yum install -y ninja-build harfbuzz-devel libwebp-devel clang mesa-libGL-devel \
+              mesa-libEGL-devel mesa-libGLES-devel fontconfig-devel python3
 
       - name: Set up environment variables
         run: |
