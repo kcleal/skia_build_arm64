@@ -6,26 +6,21 @@ on:
 jobs:
   build:
     name: Build Skia
-    runs-on: ubuntu-24.04
-    container:
-      image: quay.io/condaforge/linux-anvil-comp7
-      options: --user root
+    runs-on: [ubuntu-20.04]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
-          yum update -y
-          yum install -y ninja-build harfbuzz-devel libwebp-devel clang mesa-libGL-devel \
-              mesa-libEGL-devel mesa-libGLES-devel fontconfig-devel python3
-
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libharfbuzz-dev libwebp-dev clang python3 \
+              libgles2-mesa-dev libegl1-mesa-dev mesa-common-dev libfontconfig-dev
       - name: Set up environment variables
         run: |
           echo "SKIA_OUTPUT_PATH=$GITHUB_WORKSPACE/lib/skia" >> $GITHUB_ENV
           mkdir -p $GITHUB_WORKSPACE/lib/skia
           mkdir -p $GITHUB_WORKSPACE/build_skia && cd $GITHUB_WORKSPACE/build_skia
-
       - name: Set architecture specific flags
         run: |
           echo "EXTRA_CFLAGS=[\"-mavx2\", \"-mfma\", \"-msse4.2\", \"-mpopcnt\", \"-mf16c\"]" >> $GITHUB_ENV
@@ -33,14 +28,12 @@ jobs:
           echo "EXTRA_ARGS=skia_use_egl=true skia_use_gl=true skia_use_x11=true" >> $GITHUB_ENV
           echo "ARCH=x64" >> $GITHUB_ENV
           echo "OS=Linux" >> $GITHUB_ENV
-
       - name: Clone depot_tools and Skia
         run: |
           git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
           export PATH="$GITHUB_WORKSPACE/depot_tools:$PATH"
           cd $GITHUB_WORKSPACE
           depot_tools/fetch skia
-
       - name: Build Skia
         run: |
           cd $GITHUB_WORKSPACE/skia
@@ -64,7 +57,6 @@ jobs:
               cxx=\"clang++\" \
               ${EXTRA_ARGS}"
           ninja -C out/${REL}
-
       - name: Copy and Package Build Artifacts
         run: |
           NAME=${GITHUB_WORKSPACE}/lib/skia
@@ -96,9 +88,8 @@ jobs:
           cd ${NAME}
           tar -czf ../skia-m133-linux-Release-x64.tar.gz *
           ls -lh ../skia-m133-linux-Release-x64.tar.gz
-
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: linux_x64
           path: ${{ github.workspace }}/lib/skia-m133-linux-Release-x64.tar.gz
