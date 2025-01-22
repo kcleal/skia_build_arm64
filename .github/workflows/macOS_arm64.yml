@@ -28,7 +28,7 @@ jobs:
       - name: Set architecture specific flags
         run: |
           echo "MACOSX_DEPLOYMENT_TARGET=10.9" >> $GITHUB_ENV
-          echo "EXTRA_CFLAGS=[\"-mmacosx-version-min=10.9\", \"-march=armv8-a+crc+crypto\"]" >> $GITHUB_ENV
+          echo "EXTRA_CFLAGS=[\"-mmacosx-version-min=10.9\", \"-march=armv8-a+crc+crypto\", \"-fno-rtti\"]" >> $GITHUB_ENV
           echo "EXTRA_LDFLAGS=[\"-mmacosx-version-min=10.9\", \"-march=armv8-a+crc+crypto\"]" >> $GITHUB_ENV
           echo "EXTRA_ARGS=skia_use_gl=true skia_use_metal=true" >> $GITHUB_ENV
           echo "ARCH=arm64" >> $GITHUB_ENV
