@@ -23,8 +23,8 @@ jobs:
           mkdir -p $GITHUB_WORKSPACE/build_skia && cd $GITHUB_WORKSPACE/build_skia
       - name: Set architecture specific flags
         run: |
-          echo "EXTRA_CFLAGS=[\"-mavx2\", \"-mfma\", \"-msse4.2\", \"-mpopcnt\", \"-mf16c\"]" >> $GITHUB_ENV
-          echo "EXTRA_LDFLAGS=[\"-mavx2\", \"-mfma\"]" >> $GITHUB_ENV
+          echo "EXTRA_CFLAGS=[\"-mavx2\", \"-mavx512f\", \"-mavx512dq\", \"-mfma\", \"-msse4.2\", \"-mpopcnt\", \"-mf16c\"]" >> $GITHUB_ENV
+          echo "EXTRA_LDFLAGS=[\"-mavx2\", \"-mavx512f\", \"-mavx512dq\", \"-mfma\"]" >> $GITHUB_ENV
           echo "EXTRA_ARGS=skia_use_egl=true skia_use_gl=true skia_use_x11=true" >> $GITHUB_ENV
           echo "ARCH=x64" >> $GITHUB_ENV
           echo "OS=Linux" >> $GITHUB_ENV
