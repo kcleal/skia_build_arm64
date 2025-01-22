@@ -28,7 +28,7 @@ jobs:
 
       - name: Set architecture specific flags
         run: |
-          echo "EXTRA_CFLAGS=[\"-mmacosx-version-min=10.9\", \"-mavx2\", \"-mfma\", \"-msse4.2\", \"-mpopcnt\", \"-mf16c\"]" >> $GITHUB_ENV
+          echo "EXTRA_CFLAGS=[\"-mmacosx-version-min=10.9\", \"-mavx2\", \"-mfma\", \"-msse4.2\", \"-mpopcnt\", \"-mf16c\", \"-fno-rtti\"]" >> $GITHUB_ENV
           echo "EXTRA_LDFLAGS=[\"-mmacosx-version-min=10.9\", \"-mavx2\", \"-mfma\"]" >> $GITHUB_ENV
           echo "EXTRA_ARGS=skia_use_gl=true skia_use_metal=true" >> $GITHUB_ENV
           echo "ARCH=x64" >> $GITHUB_ENV
