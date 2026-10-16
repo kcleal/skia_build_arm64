@@ -22,13 +22,11 @@ case "$(uname -s)" in
     ;;
   *) echo "Unsupported OS: $(uname -s)" >&2; exit 1 ;;
 esac
+# Use the Ninja installed by Homebrew/apt, not depot_tools' Python wrapper.
+NINJA=$(command -v ninja) || { echo "Install ninja before building Skia" >&2; exit 1; }
 ROOT="$PWD"
 OUTPUT="$ROOT/lib/skia"
 # Fetch the intended milestone directly instead of syncing today's main first.
-if [ ! -d depot_tools ]; then
-  git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git
-fi
-export PATH="$ROOT/depot_tools:$PATH"
 if [ ! -d skia ]; then
   git clone --depth 1 --branch "chrome/$VERSION" https://skia.googlesource.com/skia.git
 fi
@@ -45,7 +43,7 @@ bin/gn gen out/Release --fail-on-unused-args --args="is_official_build=true \
   skia_enable_skottie=true target_cpu=\"$ARCH\" \
   extra_cflags=$EXTRA_CFLAGS extra_ldflags=$EXTRA_LDFLAGS \
   cc=\"clang\" cxx=\"clang++\" $EXTRA_ARGS"
-ninja -C out/Release
+"$NINJA" -C out/Release
 mkdir -p "$OUTPUT/out/Release"
 cp out/Release/*.a "$OUTPUT/out/Release/"
 cp -R include modules src "$OUTPUT/"
