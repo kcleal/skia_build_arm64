@@ -24,7 +24,7 @@ jobs:
           ./emsdk activate latest
           source ./emsdk_env.sh
           echo "EMSDK=$GITHUB_WORKSPACE/emsdk" >> $GITHUB_ENV
-          echo "EMSDK_NODE=$GITHUB_WORKSPACE/emsdk/node/16.20.0_64bit/bin/node" >> $GITHUB_ENV
+          echo "EMSDK_NODE=$EMSDK_NODE" >> "$GITHUB_ENV"
           echo "$GITHUB_WORKSPACE/emsdk/upstream/emscripten" >> $GITHUB_PATH
 
       - name: Set up environment variables
@@ -36,9 +36,13 @@ jobs:
       - name: Clone depot_tools and Skia
         run: |
           git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
-          export PATH="$GITHUB_WORKSPACE/depot_tools:$PATH"
-          cd $GITHUB_WORKSPACE
-          depot_tools/fetch skia
+          # Bootstrap scripts change directory: all depot_tools paths must be absolute.
+          export DEPOT_TOOLS_DIR="$GITHUB_WORKSPACE/depot_tools"
+          export PATH="$DEPOT_TOOLS_DIR:$PATH"
+          echo "DEPOT_TOOLS_DIR=$DEPOT_TOOLS_DIR" >> "$GITHUB_ENV"
+          echo "$DEPOT_TOOLS_DIR" >> "$GITHUB_PATH"
+          cd "$GITHUB_WORKSPACE"
+          "$DEPOT_TOOLS_DIR/fetch" skia
 
       - name: Build Skia
         run: |
