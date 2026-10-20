@@ -3,9 +3,15 @@ name: Build Skia WASM
 on:
   workflow_dispatch:
 
+env:
+  SKIA_BRANCH: chrome/m143
+  SKIA_VERSION: m143
+  # Match the SDK used to build GW, HTSlib and XZ; do not use a floating latest.
+  EMSCRIPTEN_VERSION: 3.1.65
+
 jobs:
   build:
-    name: Build Skia WASM
+    name: Build Skia m143 WASM
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -16,84 +22,72 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ninja-build python3
 
-      - name: Install Emscripten
+      - name: Install pinned Emscripten
         run: |
           git clone https://github.com/emscripten-core/emsdk.git
           cd emsdk
-          ./emsdk install latest
-          ./emsdk activate latest
+          ./emsdk install "$EMSCRIPTEN_VERSION"
+          ./emsdk activate "$EMSCRIPTEN_VERSION"
           source ./emsdk_env.sh
-          echo "EMSDK=$GITHUB_WORKSPACE/emsdk" >> $GITHUB_ENV
+          echo "EMSDK=$GITHUB_WORKSPACE/emsdk" >> "$GITHUB_ENV"
           echo "EMSDK_NODE=$EMSDK_NODE" >> "$GITHUB_ENV"
-          echo "$GITHUB_WORKSPACE/emsdk/upstream/emscripten" >> $GITHUB_PATH
-
-      - name: Set up environment variables
-        run: |
-          echo "SKIA_OUTPUT_PATH=$GITHUB_WORKSPACE/lib/skia" >> $GITHUB_ENV
-          mkdir -p $GITHUB_WORKSPACE/lib/skia
-          mkdir -p $GITHUB_WORKSPACE/build_skia && cd $GITHUB_WORKSPACE/build_skia
+          echo "$GITHUB_WORKSPACE/emsdk/upstream/emscripten" >> "$GITHUB_PATH"
+          emcc --version
 
       - name: Clone depot_tools and Skia
         run: |
           git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
-          # Bootstrap scripts change directory: all depot_tools paths must be absolute.
+          # Bootstrap scripts change directory: depot_tools paths must be absolute.
           export DEPOT_TOOLS_DIR="$GITHUB_WORKSPACE/depot_tools"
           export PATH="$DEPOT_TOOLS_DIR:$PATH"
-          echo "DEPOT_TOOLS_DIR=$DEPOT_TOOLS_DIR" >> "$GITHUB_ENV"
           echo "$DEPOT_TOOLS_DIR" >> "$GITHUB_PATH"
-          cd "$GITHUB_WORKSPACE"
-          "$DEPOT_TOOLS_DIR/fetch" skia
+          git clone --branch "$SKIA_BRANCH" --depth 1 https://skia.googlesource.com/skia.git "$GITHUB_WORKSPACE/skia"
 
-      - name: Build Skia
+      - name: Build Skia with the selected SDK
         run: |
-          cd $GITHUB_WORKSPACE/skia
-          git checkout origin/chrome/m133
-          python3 tools/git-sync-deps
-          cd modules/canvaskit
-          bash compile.sh
-          make release
-          ls
+          source "$EMSDK/emsdk_env.sh"
+          cd "$GITHUB_WORKSPACE/skia"
+          GIT_SYNC_DEPS_SKIP_EMSDK=1 python3 tools/git-sync-deps
+          # GN otherwise uses Skia's independently pinned bundled emsdk.
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('modules/canvaskit/compile.sh')
+          text = p.read_text()
+          marker = '--args="'
+          if marker not in text:
+              raise SystemExit('Skia compile.sh changed: cannot inject the SDK path')
+          text = text.replace(marker, marker + '${GW_SKIA_GN_ARGS} ', 1)
+          p.write_text(text)
+          PY
+          printf -v GW_SKIA_GN_ARGS 'skia_emsdk_dir="%s"' "$EMSDK"
+          export GW_SKIA_GN_ARGS
+          bash modules/canvaskit/compile.sh
+          for library in libskia.a libskcms.a libjpeg.a libpng.a; do
+            test -s "out/canvaskit_wasm/$library"
+          done
+          grep -E "skia_emsdk_dir[[:space:]]*=[[:space:]]*\"$EMSDK\"" out/canvaskit_wasm/args.gn
 
-      - name: Copy and Package Build Artifacts
+      - name: Package libraries and matching headers
         run: |
-          NAME=${GITHUB_WORKSPACE}/lib/skia
-          
-          ls $GITHUB_WORKSPACE/skia
-          echo "-"
-          ls $GITHUB_WORKSPACE/skia/out 
-          echo "-"
-          ls $GITHUB_WORKSPACE/skia/out/canvaskit_wasm
-          echo
-          
-          mkdir -p ${NAME}/out/Release
-          
-          cp -rf $GITHUB_WORKSPACE/skia/out/canvaskit_wasm/* ${NAME}/out/Release
-          cp -rf $GITHUB_WORKSPACE/skia/include ${NAME}
-          cp -rf $GITHUB_WORKSPACE/skia/modules ${NAME}
-          
-          # Clean up
-          rm -rf ${NAME}/out/Release/obj
-          rm -rf ${NAME}/out/Release/gen
-          
-          rm -rf ${NAME}/modules/audioplayer
-           
-          find . -type f -name "*.clang-format" -delete
-          find . -type f -name "*.gitignore" -delete
-          find . -type f -name "*.md" -delete
-          find . -type f -name "*.gn" -delete
-          find . -type f -name "*.ninja" -delete
-          find . -type f -name "*.cpp" -delete
-          find . -type f -name "*.ninja.d" -delete
-          find . -type f -name "*BUILD*" -delete
-          find . -type f -name "*.txt" -delete
-          find . -type d -name "test*" -exec rm -rf {} +
-          
-          cd ${NAME}
-          tar -czf ../skia-m133-wasm.tar.gz *
-          ls -lh ../skia-m133-wasm.tar.gz
+          NAME="$GITHUB_WORKSPACE/lib/skia"
+          mkdir -p "$NAME/out/Release"
+          cp "$GITHUB_WORKSPACE/skia/out/canvaskit_wasm/"*.a "$NAME/out/Release/"
+          cp -R "$GITHUB_WORKSPACE/skia/include" "$GITHUB_WORKSPACE/skia/modules" "$NAME/"
+          rm -rf "$NAME/modules/audioplayer"
+          # Trim only the package tree, preserving headers and bundled resources.
+          find "$NAME" -type f \( -name '*.clang-format' -o -name '.gitignore' -o -name '*.md' -o -name '*.gn' -o -name '*.ninja' -o -name '*.cpp' -o -name '*.ninja.d' -o -name '*BUILD*' -o -name '*.txt' \) -delete
+          find "$NAME" -depth -type d -name 'test*' -exec rm -rf {} +
+          {
+            echo "Skia: $SKIA_BRANCH"
+            git -C "$GITHUB_WORKSPACE/skia" rev-parse HEAD
+            echo "Emscripten: $EMSCRIPTEN_VERSION"
+            emcc --version
+          } > "$NAME/BUILD_INFO"
+          tar -czf "$GITHUB_WORKSPACE/lib/skia-${SKIA_VERSION}-wasm.tar.gz" -C "$NAME" .
 
-      - name: Upload Artifacts
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: wasm
-          path: ${{ github.workspace }}/lib/skia-m133-wasm.tar.gz
+          name: skia-m143-wasm
+          path: ${{ github.workspace }}/lib/skia-m143-wasm.tar.gz
+          if-no-files-found: error
